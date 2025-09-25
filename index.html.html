@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REE & TDEE Calculator + Meal Tracker</title>
+  <style>
+    body { font-family: Tahoma, sans-serif; margin: 20px; background: #f8f9fa; }
+    h1 { text-align: center; color: #333; }
+    .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    label { display: block; margin-top: 10px; font-weight: bold; }
+    input, select, button { width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 5px; }
+    button { background: #007bff; color: white; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    .result, .meal-section { margin-top: 20px; padding: 15px; background: #f1f1f1; border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    th { background: #007bff; color: white; }
+    .btn-clear { background: #dc3545; margin-top: 10px; }
+    .btn-clear:hover { background: #a71d2a; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>REE and TDEE Calculator</h1>
+    <h2>กรอกข้อมูลส่วนตัว</h2>
+    <label>เพศ:</label>
+    <select id="gender">
+      <option value="1">ชาย</option>
+      <option value="0">หญิง</option>
+    </select>
+    <label>อายุ (ปี):</label>
+    <input type="number" id="age" />
+    <label>น้ำหนัก (กก.):</label>
+    <input type="number" id="weight" />
+    <label>ส่วนสูง (ซม.):</label>
+    <input type="number" id="height" />
+    <label>% ไขมัน (ถ้ามี):</label>
+    <input type="number" id="bodyfat" />
+    <label>ระดับกิจกรรม:</label>
+    <select id="activity">
+      <option value="1.2">ไม่ออกกำลังกาย</option>
+      <option value="1.375">ออกกำลังเล็กน้อย (1-3 วัน/สัปดาห์)</option>
+      <option value="1.55">ออกกำลังปานกลาง (3-5 วัน/สัปดาห์)</option>
+      <option value="1.725">ออกกำลังหนัก (6-7 วัน/สัปดาห์)</option>
+      <option value="1.9">ออกกำลังหนักมาก</option>
+    </select>
+    <label>เป้าหมาย:</label>
+    <select id="goal">
+      <option value="cut">ลดไขมัน</option>
+      <option value="maintain">รักษาหุ่น</option>
+      <option value="bulk">เพิ่มกล้ามเนื้อ</option>
+    </select>
+    <button onclick="calculate()">คำนวณ</button>
+
+    <div class="result" id="result"></div>
+
+    <div class="meal-section">
+      <h2>บันทึกสิ่งที่กิน</h2>
+      <label>เลือกอาหารพื้นฐาน:</label>
+      <select id="foodSelect">
+        <option value="">-- เลือกอาหาร --</option>
+        <option value="ข้าวสุก">ข้าวสุก (100g = 130 kcal, P 2.7, C 28, F 0.3)</option>
+        <option value="อกไก่">อกไก่ (100g = 165 kcal, P 31, C 0, F 3.6)</option>
+        <option value="ไข่ไก่">ไข่ไก่ (1 ฟอง 50g = 70 kcal, P 6, C 0.6, F 5)</option>
+        <option value="ปลาทับทิม">ปลาทับทิม (100g = 128 kcal, P 26, C 0, F 2.7)</option>
+        <option value="ขนมปัง">ขนมปัง (1 แผ่น 25g = 70 kcal, P 2.5, C 12, F 1)</option>
+        <option value="มันฝรั่ง">มันฝรั่ง (100g = 77 kcal, P 2, C 17, F 0.1)</option>
+        <option value="น้ำมันพืช">น้ำมันพืช (1 ช้อนโต๊ะ 14g = 120 kcal, P 0, C 0, F 14)</option>
+      </select>
+      <label>ปริมาณ (กรัม หรือ จำนวนตามที่ระบุ):</label>
+      <input type="number" id="foodAmount" />
+      <button onclick="addFood()">เพิ่มอาหาร</button>
+
+      <h3>เพิ่มอาหารเอง</h3>
+      <label>ชื่ออาหาร:</label>
+      <input type="text" id="customName" />
+      <label>พลังงาน (kcal/100g):</label>
+      <input type="number" id="customKcal" />
+      <label>โปรตีน (g/100g):</label>
+      <input type="number" id="customProtein" />
+      <label>คาร์บ (g/100g):</label>
+      <input type="number" id="customCarb" />
+      <label>ไขมัน (g/100g):</label>
+      <input type="number" id="customFat" />
+      <label>ปริมาณ (กรัม):</label>
+      <input type="number" id="customAmount" />
+      <button onclick="addCustomFood()">เพิ่มอาหารเอง</button>
+
+      <h3>สิ่งที่กินวันนี้</h3>
+      <table id="mealTable">
+        <thead>
+          <tr>
+            <th>อาหาร</th>
+            <th>ปริมาณ</th>
+            <th>พลังงาน (kcal)</th>
+            <th>โปรตีน (g)</th>
+            <th>คาร์บ (g)</th>
+            <th>ไขมัน (g)</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <th colspan="2">รวม</th>
+            <th id="totalKcal">0</th>
+            <th id="totalProtein">0</th>
+            <th id="totalCarb">0</th>
+            <th id="totalFat">0</th>
+          </tr>
+        </tfoot>
+      </table>
+      <button onclick="clearMeals()" class="btn-clear">ล้างรายการอาหารทั้งหมด</button>
+      <button onclick="window.print()">บันทึกเป็น PDF</button>
+    </div>
+  </div>
+
+  <script>
+    function calculate() {
+      let gender = parseInt(document.getElementById('gender').value);
+      let age = parseFloat(document.getElementById('age').value);
+      let weight = parseFloat(document.getElementById('weight').value);
+      let height = parseFloat(document.getElementById('height').value)/100;
+      let bf = parseFloat(document.getElementById('bodyfat').value);
+      let activity = parseFloat(document.getElementById('activity').value);
+      let goal = document.getElementById('goal').value;
+
+      let REE = 0;
+      if (!isNaN(bf)) {
+        let FFM = weight * (1 - bf/100);
+        REE = 22.771 * FFM + 484.264;
+      } else {
+        REE = 11.936 * weight + 587.728 * height - 8.129 * age + 191.027 * gender + 29.279;
+      }
+
+      let TDEE = REE * activity;
+      let target = TDEE;
+      if (goal === "cut") target = TDEE * 0.8;
+      if (goal === "bulk") target = TDEE * 1.1;
+
+      document.getElementById('result').innerHTML = `
+        <h3>ผลการคำนวณ</h3>
+        <p>REE: ${REE.toFixed(0)} kcal</p>
+        <p>TDEE: ${TDEE.toFixed(0)} kcal</p>
+        <p>เป้าหมาย (${goal}): ${target.toFixed(0)} kcal</p>
+      `;
+    }
+
+    const foodDB = {
+      "ข้าวสุก": { kcal:130, protein:2.7, carb:28, fat:0.3, base:100 },
+      "อกไก่": { kcal:165, protein:31, carb:0, fat:3.6, base:100 },
+      "ไข่ไก่": { kcal:70, protein:6, carb:0.6, fat:5, base:50 },
+      "ปลาทับทิม": { kcal:128, protein:26, carb:0, fat:2.7, base:100 },
+      "ขนมปัง": { kcal:70, protein:2.5, carb:12, fat:1, base:25 },
+      "มันฝรั่ง": { kcal:77, protein:2, carb:17, fat:0.1, base:100 },
+      "น้ำมันพืช": { kcal:120, protein:0, carb:0, fat:14, base:14 }
+    };
+
+    function addFood() {
+      let food = document.getElementById("foodSelect").value;
+      let amount = parseFloat(document.getElementById("foodAmount").value);
+      if (food && amount) {
+        let data = foodDB[food];
+        let factor = amount / data.base;
+        let kcal = data.kcal * factor;
+        let protein = data.protein * factor;
+        let carb = data.carb * factor;
+        let fat = data.fat * factor;
+        addRow(food, amount, kcal, protein, carb, fat);
+      }
+    }
+
+    function addCustomFood() {
+      let name = document.getElementById("customName").value;
+      let kcal = parseFloat(document.getElementById("customKcal").value);
+      let protein = parseFloat(document.getElementById("customProtein").value);
+      let carb = parseFloat(document.getElementById("customCarb").value);
+      let fat = parseFloat(document.getElementById("customFat").value);
+      let amount = parseFloat(document.getElementById("customAmount").value);
+      if (name && kcal && amount) {
+        let factor = amount/100;
+        addRow(name, amount, kcal*factor, protein*factor, carb*factor, fat*factor);
+      }
+    }
+
+    function addRow(name, amount, kcal, protein, carb, fat) {
+      let tbody = document.querySelector("#mealTable tbody");
+      let row = tbody.insertRow();
+      row.insertCell(0).innerText = name;
+      row.insertCell(1).innerText = amount;
+      row.insertCell(2).innerText = kcal.toFixed(0);
+      row.insertCell(3).innerText = protein.toFixed(1);
+      row.insertCell(4).innerText = carb.toFixed(1);
+      row.insertCell(5).innerText = fat.toFixed(1);
+      updateTotals(kcal, protein, carb, fat);
+    }
+
+    function updateTotals(kcal, protein, carb, fat) {
+      document.getElementById("totalKcal").innerText = (parseFloat(document.getElementById("totalKcal").innerText)+kcal).toFixed(0);
+      document.getElementById("totalProtein").innerText = (parseFloat(document.getElementById("totalProtein").innerText)+protein).toFixed(1);
+      document.getElementById("totalCarb").innerText = (parseFloat(document.getElementById("totalCarb").innerText)+carb).toFixed(1);
+      document.getElementById("totalFat").innerText = (parseFloat(document.getElementById("totalFat").innerText)+fat).toFixed(1);
+    }
+
+    function clearMeals() {
+      document.querySelector("#mealTable tbody").innerHTML = "";
+      document.getElementById("totalKcal").innerText = "0";
+      document.getElementById("totalProtein").innerText = "0";
+      document.getElementById("totalCarb").innerText = "0";
+      document.getElementById("totalFat").innerText = "0";
+    }
+  </script>
+</body>
+</html>
